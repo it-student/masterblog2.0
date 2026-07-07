@@ -1,8 +1,20 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
 
+SWAGGER_URL="/api/docs"  # (1) swagger endpoint e.g. HTTP://localhost:5002/api/docs
+API_URL="/static/masterblog.json" # (2) ensure you create this dir and file
+
+swagger_ui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'app_name': 'Masterblog API' # (3) You can change this if you like
+    }
+)
 app = Flask(__name__)
 CORS(app)  # This will enable CORS for all routes
+app.register_blueprint(swagger_ui_blueprint, url_prefix=SWAGGER_URL)
 
 data = {
     'next_id' : 3
@@ -141,8 +153,29 @@ def get_posts():
         except TypeError as e:
             print(e)
             return "Fields must not be empty!", 400
-
-    return jsonify(POSTS)
+    # Request method is 'GET'
+    if request.args:
+        sort_by = request.args.get("sort")
+        order = request.args.get("direction")
+        if order and order not in ["asc", "desc"]:
+            return f"Invalid sort parameter. Must be 'asc' or 'desc'. Given: '{order}.", 400
+        orig_posts = fetch_all().copy() # get all posts first
+        if sort_by == "title":
+            if order == "desc":
+                orig_posts.sort(key=lambda x: x["title"].lower(), reverse=True)
+            else: # order == "asc"
+                orig_posts.sort(key=lambda x: x["title"].lower())
+            return jsonify(orig_posts), 200
+        elif sort_by == "content":
+            if order == "desc":
+                orig_posts.sort(key=lambda x: x["content"].lower(), reverse=True)
+            else:
+                orig_posts.sort(key=lambda x: x["content"].lower())
+            return jsonify(orig_posts), 200
+        else:
+            return f"Cannot sort by {sort_by}, only 'title' or 'content'.", 400
+    # No additional request parameter given for sorting, returning 'original' order of posts.
+    return jsonify(fetch_all())
 
 @app.route('/api/posts/search', methods=['GET'])
 def search_posts():
