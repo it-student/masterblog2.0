@@ -99,6 +99,30 @@ def remove_post(post_id: int) -> int | None:
         return post_id
     return None
 
+def get_posts_by_title(search_title) -> list:
+    """
+    Returns a list of all posts matching the search_title
+    :param search_title:
+    :return posts: List of all matching posts:
+    """
+    findings = []
+    for post in POSTS:
+        if post["title"].upper() == search_title.upper():
+            findings.append(post)
+    return findings
+
+def get_posts_by_content(search_content) -> list:
+    """
+    Returns a list of all posts matching the search_content
+    :param search_content:
+    :return posts: List of all matching posts:
+    """
+    findings = []
+    for post in POSTS:
+        if post["content"].upper() == search_content.upper():
+            findings.append(post)
+    return findings
+
 @app.route('/api/posts', methods=['GET', 'POST'])
 def get_posts():
     """
@@ -119,6 +143,23 @@ def get_posts():
             return "Fields must not be empty!", 400
 
     return jsonify(POSTS)
+
+@app.route('/api/posts/search', methods=['GET'])
+def search_posts():
+    """
+    Searches for posts matching either a given 'search_title' or 'search_content' parameter.
+    :return found_posts: List of all matching posts if any, otherwise empty list:
+    """
+    search_title = request.args.get('title')
+    search_content = request.args.get('content')
+    if search_title:
+        found_posts = get_posts_by_title(search_title)
+    elif search_content:
+        found_posts = get_posts_by_content(search_content)
+    else:
+        return "No search parameters provided", 400
+
+    return jsonify(found_posts), 200
 
 @app.route('/api/posts/<int:post_id>', methods=['PUT'])
 def update_post(post_id: int):
