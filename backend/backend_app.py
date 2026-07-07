@@ -73,6 +73,18 @@ def create_post(post_title: str, post_content: str) -> None:
     data['next_id'] += 1
     return
 
+def update_existing_post(new_post: dict) -> bool:
+    """
+    Updates an existing post and returns True, otherwise False.
+    :param new_post: Entire post containing the id, title and content.
+    """
+    for post in POSTS:
+        if post["id"] == new_post["id"]:
+            post["title"] = new_post["title"]
+            post["content"] = new_post["content"]
+            return True
+    return False
+
 def remove_post(post_id: int) -> int | None:
     """
     Deletes a post
@@ -84,18 +96,24 @@ def remove_post(post_id: int) -> int | None:
         return post_id
     return None
 
-@app.route('/api/posts', methods=['GET'])
+@app.route('/api/posts', methods=['GET', 'POST'])
 def get_posts():
     """
     If GET-request: Returns a list of all posts
     If POST request: Creates a new post
     """
     if request.method == 'POST':
-        title = request.json.get("title")
-        content = request.json.get("content")
-        if is_valid_post(title, content):
-            create_post(title, content)
-            return f"Post {title} created", 201
+        try:
+            title = request.json.get("title")
+            content = request.json.get("content")
+            if is_valid_post(title, content):
+                create_post(title, content)
+                return f"Post {title} created", 201
+            else:
+                return "The title and/or content of the post must not be empty!", 400
+        except TypeError as e:
+            print(e)
+            return "Fields must not be empty!", 400
 
     return jsonify(POSTS)
 
@@ -105,7 +123,16 @@ def update_post(post_id: int):
     Updates a post
     :param post_id:
     """
-    updated_post = {}
+    new_post = {"id": post_id,
+                "title": request.json.get("title"),
+                "content": request.json.get("content")}
+    if is_valid_post(new_post):
+        post_updated = update_existing_post(new_post)
+        if post_updated:
+            return get_post_by_id(post_id), 200
+        return f"Post with id <{post_id}> does not exist.", 404
+    return "The title and/or content of the post must not be empty!", 400
+
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
 def delete_post(post_id: int):
@@ -119,5 +146,4 @@ def delete_post(post_id: int):
     return f"Post with id <{post_id}> does not exist.", 404
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0"
-                 "l;'./", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=True)
