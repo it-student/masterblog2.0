@@ -47,9 +47,12 @@ def is_valid_post(post_title: str, post_content: str) -> bool:
     :param post_content: String of the post content
     :return: Boolean value of the check
     """
-    correct_title_len = 50 >= len(post_title) > 0
-    correct_content_len = 500 > len(post_content) > 0
-    return correct_title_len and correct_content_len
+    if post_title is not None and post_content is not None:
+        correct_title_len = 50 >= len(post_title) > 0
+        correct_content_len = 500 > len(post_content) > 0
+        return correct_title_len and correct_content_len
+    else:
+        return False
 
 def get_next_id():
     """
