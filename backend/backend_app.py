@@ -123,15 +123,21 @@ def update_post(post_id: int):
     Updates a post
     :param post_id:
     """
-    new_post = {"id": post_id,
-                "title": request.json.get("title"),
-                "content": request.json.get("content")}
-    if is_valid_post(new_post):
-        post_updated = update_existing_post(new_post)
-        if post_updated:
-            return get_post_by_id(post_id), 200
-        return f"Post with id <{post_id}> does not exist.", 404
-    return "The title and/or content of the post must not be empty!", 400
+    try:
+        new_title = request.json.get("title")
+        new_content = request.json.get("content")
+        new_post = {"id": post_id,
+                    "title": new_title,
+                    "content": new_content}
+        if is_valid_post(new_title, new_content):
+            post_updated = update_existing_post(new_post)
+            if post_updated:
+                return get_post_by_id(post_id), 200
+            return f"Post with id <{post_id}> does not exist.", 404
+        return "The title and/or content of the post must not be empty!", 400
+    except TypeError as e:
+        print(e)
+        return "Fields must not be empty!", 400
 
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
