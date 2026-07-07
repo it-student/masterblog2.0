@@ -147,18 +147,18 @@ def get_posts():
             content = request.json.get("content")
             if is_valid_post(title, content):
                 create_post(title, content)
-                return f"Post {title} created", 201
+                return jsonify("Post {title} created"), 201
             else:
-                return "The title and/or content of the post must not be empty!", 400
+                return jsonify("The title and/or content of the post must not be empty!"), 400
         except TypeError as e:
             print(e)
-            return "Fields must not be empty!", 400
+            return jsonify("Fields must not be empty!"), 400
     # Request method is 'GET'
     if request.args:
         sort_by = request.args.get("sort")
         order = request.args.get("direction")
         if order and order not in ["asc", "desc"]:
-            return f"Invalid sort parameter. Must be 'asc' or 'desc'. Given: '{order}.", 400
+            return jsonify(f"Invalid sort parameter. Must be 'asc' or 'desc'. Given: '{order}."), 400
         orig_posts = fetch_all().copy() # get all posts first
         if sort_by == "title":
             if order == "desc":
@@ -173,9 +173,9 @@ def get_posts():
                 orig_posts.sort(key=lambda x: x["content"].lower())
             return jsonify(orig_posts), 200
         else:
-            return f"Cannot sort by {sort_by}, only 'title' or 'content'.", 400
+            return jsonify(f"Cannot sort by {sort_by}, only 'title' or 'content'."), 400
     # No additional request parameter given for sorting, returning 'original' order of posts.
-    return jsonify(fetch_all())
+    return jsonify(fetch_all()), 200
 
 @app.route('/api/posts/search', methods=['GET'])
 def search_posts():
@@ -190,7 +190,7 @@ def search_posts():
     elif search_content:
         found_posts = get_posts_by_content(search_content)
     else:
-        return "No search parameters provided", 400
+        return jsonify("No search parameters provided"), 400
 
     return jsonify(found_posts), 200
 
@@ -209,12 +209,12 @@ def update_post(post_id: int):
         if is_valid_post(new_title, new_content):
             post_updated = update_existing_post(new_post)
             if post_updated:
-                return get_post_by_id(post_id), 200
-            return f"Post with id <{post_id}> does not exist.", 404
-        return "The title and/or content of the post must not be empty!", 400
+                return jsonify(get_post_by_id(post_id)), 200
+            return jsonify(f"Post with id <{post_id}> does not exist."), 404
+        return jsonify("The title and/or content of the post must not be empty!"), 400
     except TypeError as e:
         print(e)
-        return "Fields must not be empty!", 400
+        return jsonify("Fields must not be empty!"), 400
 
 
 @app.route('/api/posts/<int:post_id>', methods=['DELETE'])
@@ -225,8 +225,8 @@ def delete_post(post_id: int):
     """
     deleted_id = remove_post(post_id)
     if deleted_id:
-        return f"Post with id <{post_id}> has been deleted successfully.", 200
-    return f"Post with id <{post_id}> does not exist.", 404
+        return jsonify(f"Post with id <{post_id}> has been deleted successfully."), 200
+    return jsonify(f"Post with id <{post_id}> does not exist."), 404
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
