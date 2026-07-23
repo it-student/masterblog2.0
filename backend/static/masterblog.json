@@ -1,0 +1,55 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Masterblog API",
+    "version": "1.0.0"
+  },
+  "servers": [{ "url": "https://deposittelecom-moraldinner-5002.codio.io/" }],
+  "tags": [{ "name": "Post", "description": "Post API - CRUD" }],
+  "paths": {
+        "/api/posts": {
+            "get": {
+              "summary": "Returns all posts",
+              "tags": ["Post"],
+              "responses": {
+                "200": {
+                  "description": "A JSON Array of posts",
+                  "content": {
+                    "application/json": {
+                      "schema": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "post": {
+              "summary": "Creates a new post",
+              "tags": ["Post"],
+              "requestBody": {
+                "required": true,
+                "content":
+              },
+              "responses": {
+                "201": {
+                  "description": "A JSON Object of a post created and saved to DB.",
+                  "content": {
+                    "text/html": {
+                      "schema": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+        }
+    }
+}
