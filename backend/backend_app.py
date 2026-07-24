@@ -43,15 +43,6 @@ def get_post_by_id(post_id: int) -> dict | None:
             return post
     return None
 
-def set_posts(posts_list: list[dict]):
-    """
-    Sets a list of posts
-    :param posts_list:
-    """
-    POSTS.clear()
-    for post in posts_list:
-        POSTS.append(post)
-
 def is_valid_post(post_title: str, post_content: str) -> bool:
     """
     Checks if the post title and the content is valid
@@ -74,19 +65,20 @@ def get_next_id():
     return  data["next_id"]
 
 
-def create_post(post_title: str, post_content: str) -> None:
+def create_post(post_title: str, post_content: str) -> dict:
     """
     Creates a new post
     :param post_title: String of the post title
     :param post_content: String of the post content
     """
-    POSTS.append({
+    new_post = {
         "id": get_next_id(),
          "title": post_title,
          "content": post_content
-    })
+    }
+    POSTS.append(new_post)
     data['next_id'] += 1
-    return
+    return new_post
 
 def update_existing_post(new_post: dict) -> bool:
     """
@@ -95,8 +87,8 @@ def update_existing_post(new_post: dict) -> bool:
     """
     for post in POSTS:
         if post["id"] == new_post["id"]:
-            post["title"] = new_post["title"]
-            post["content"] = new_post["content"]
+            post["title"] = new_post["title"] if new_post["title"] else post["title"]
+            post["content"] = new_post["content"] if new_post["content"] else post["content"]
             return True
     return False
 
@@ -119,7 +111,7 @@ def get_posts_by_title(search_title) -> list:
     """
     findings = []
     for post in POSTS:
-        if post["title"].upper() == search_title.upper():
+        if search_title.upper() in post["title"].upper():
             findings.append(post)
     return findings
 
@@ -131,7 +123,7 @@ def get_posts_by_content(search_content) -> list:
     """
     findings = []
     for post in POSTS:
-        if post["content"].upper() == search_content.upper():
+        if search_content.upper() in post["content"].upper():
             findings.append(post)
     return findings
 
@@ -146,8 +138,8 @@ def get_posts():
             title = request.json.get("title")
             content = request.json.get("content")
             if is_valid_post(title, content):
-                create_post(title, content)
-                return jsonify("Post {title} created"), 201
+                created_post = create_post(title, content)
+                return jsonify(created_post), 201
             else:
                 return jsonify("The title and/or content of the post must not be empty!"), 400
         except TypeError as e:
@@ -158,7 +150,7 @@ def get_posts():
         sort_by = request.args.get("sort")
         order = request.args.get("direction")
         if order and order not in ["asc", "desc"]:
-            return jsonify(f"Invalid sort parameter. Must be 'asc' or 'desc'. Given: '{order}."), 400
+            return jsonify(f"Invalid sorting parameter 'direction' value. The Value must be 'asc' or 'desc'. Given: '{order}."), 400
         orig_posts = fetch_all().copy() # get all posts first
         if sort_by == "title":
             if order == "desc":
@@ -173,7 +165,7 @@ def get_posts():
                 orig_posts.sort(key=lambda x: x["content"].lower())
             return jsonify(orig_posts), 200
         else:
-            return jsonify(f"Cannot sort by {sort_by}, only 'title' or 'content'."), 400
+            return jsonify(f"Invalid 'sort' parameter value. The value can only be 'title' or 'content'. Given: '{sort_by}'."), 400
     # No additional request parameter given for sorting, returning 'original' order of posts.
     return jsonify(fetch_all()), 200
 
@@ -183,13 +175,14 @@ def search_posts():
     Searches for posts matching either a given 'search_title' or 'search_content' parameter.
     :return found_posts: List of all matching posts if any, otherwise empty list:
     """
+    found_posts = []
     search_title = request.args.get('title')
     search_content = request.args.get('content')
     if search_title:
-        found_posts = get_posts_by_title(search_title)
-    elif search_content:
-        found_posts = get_posts_by_content(search_content)
-    else:
+        found_posts += get_posts_by_title(search_title)
+    if search_content:
+        found_posts += get_posts_by_content(search_content)
+    if not search_title and not search_content:
         return jsonify("No search parameters provided"), 400
 
     return jsonify(found_posts), 200
@@ -204,14 +197,12 @@ def update_post(post_id: int):
         new_title = request.json.get("title")
         new_content = request.json.get("content")
         new_post = {"id": post_id,
-                    "title": new_title,
-                    "content": new_content}
-        if is_valid_post(new_title, new_content):
-            post_updated = update_existing_post(new_post)
-            if post_updated:
-                return jsonify(get_post_by_id(post_id)), 200
-            return jsonify(f"Post with id <{post_id}> does not exist."), 404
-        return jsonify("The title and/or content of the post must not be empty!"), 400
+                    "title": new_title if new_title else None,
+                    "content": new_content if new_content else None}
+        post_updated = update_existing_post(new_post)
+        if post_updated:
+            return jsonify(get_post_by_id(post_id)), 200
+        return jsonify(f"Post with id {post_id} does not exist."), 404
     except TypeError as e:
         print(e)
         return jsonify("Fields must not be empty!"), 400
@@ -225,8 +216,8 @@ def delete_post(post_id: int):
     """
     deleted_id = remove_post(post_id)
     if deleted_id:
-        return jsonify(f"Post with id <{post_id}> has been deleted successfully."), 200
-    return jsonify(f"Post with id <{post_id}> does not exist."), 404
+        return jsonify({"message":f"Post with id {post_id} has been deleted successfully."}), 200
+    return jsonify(f"Post with id {post_id} does not exist."), 404
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=5002, debug=True)
