@@ -17,11 +17,23 @@ function loadPosts() {
 
     // Use the Fetch API to send a GET request to the /posts endpoint
     fetch(baseUrl + '/posts')
-        .then(response => response.json())  // Parse the JSON data from the response
+        .then(response => {
+            console.log("Status:", response.status);
+
+            if (!response.ok) {
+                throw new Error(`HTTP Error: ${response.status}`);
+            }
+
+            return response.json();
+        })  // Parse the JSON data from the response
         .then(data => {  // Once the data is ready, we can use it
             // Clear out the post container first
             const postContainer = document.getElementById('post-container');
             postContainer.innerHTML = '';
+
+            if (!data instanceof Array) {
+                throw new Error('Error loading the posts. Could not populate the HTML with date. Response should be an array');
+            }
 
             // For each post in the response, create a new post element and add it to the page
             data.forEach(post => {
@@ -48,7 +60,13 @@ function addPost() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: postTitle, content: postContent })
     })
-    .then(response => response.json())  // Parse the JSON data from the response
+    .then(response => {
+        console.log("Status:", response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
+        return response.json();
+    })  // Parse the JSON data from the response
     .then(post => {
         console.log('Post added:', post);
         loadPosts(); // Reload the posts after adding a new one
